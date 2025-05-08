@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nas
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nas
+  template:
+    metadata:
+      labels:
+        app: nas
+    spec:
+      containers:
+        - name: nas
+          image: dluppoli/nas:1.0
+          env:
+            - name: STORAGE_PATH
+              valueFrom:
+                configMapKeyRef:
+                  name: nas-config
+                  key: STORAGE_PATH
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: nas-config
+                  key: PORT 
+            - name: DOWNLOAD_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nas-secret
+                  key: pwd
+          volumeMounts:
+            - mountPath: "/app/data"
+              name: nas-storage
+      volumes:
+        - name: nas-storage
+          persistentVolumeClaim:
+            claimName: nas-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nas
+spec:
+  selector:
+    app: nas
+  type: LoadBalancer
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
